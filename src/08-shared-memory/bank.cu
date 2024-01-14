@@ -2,9 +2,9 @@
 #include <stdio.h>
 
 #ifdef USE_DP
-    typedef double real;
+typedef double real;
 #else
-    typedef float real;
+typedef float real;
 #endif
 
 const int NUM_REPEATS = 10;
@@ -15,6 +15,12 @@ __global__ void transpose1(const real *A, real *B, const int N);
 __global__ void transpose2(const real *A, real *B, const int N);
 void print_matrix(const int N, const real *A);
 
+// 矩阵转置
+// 内存bank冲突：为了获得高的内存带宽共享内存在物理上被分为32个（刚好等于1个线程束中的线程数目,即内建变量
+// warpSize的值）同样宽度的、能被同时访问的内存bank
+
+// 只要同—线程束内的多个线程不同时访问同一个bank中不同层的数据,该线程束对共享内存的访问就只需要＿次内存事务（memorytransaction）。当同＿线程
+// 束内的多个线程试图访问同一个bank中不同层的数据时就会发生bank冲突
 int main(int argc, char **argv)
 {
     if (argc != 2)
@@ -26,8 +32,8 @@ int main(int argc, char **argv)
 
     const int N2 = N * N;
     const int M = sizeof(real) * N2;
-    real *h_A = (real *) malloc(M);
-    real *h_B = (real *) malloc(M);
+    real *h_A = (real *)malloc(M);
+    real *h_B = (real *)malloc(M);
     for (int n = 0; n < N2; ++n)
     {
         h_A[n] = n;
@@ -77,16 +83,16 @@ void timing(const real *d_A, real *d_B, const int N, const int task)
 
         switch (task)
         {
-            case 1:
-                transpose1<<<grid_size, block_size>>>(d_A, d_B, N);
-                break;
-            case 2:
-                transpose2<<<grid_size, block_size>>>(d_A, d_B, N);
-                break;
-            default:
-                printf("Error: wrong task\n");
-                exit(1);
-                break;
+        case 1:
+            transpose1<<<grid_size, block_size>>>(d_A, d_B, N);
+            break;
+        case 2:
+            transpose2<<<grid_size, block_size>>>(d_A, d_B, N);
+            break;
+        default:
+            printf("Error: wrong task\n");
+            exit(1);
+            break;
         }
 
         CHECK(cudaEventRecord(stop));
@@ -134,7 +140,7 @@ __global__ void transpose1(const real *A, real *B, const int N)
 
 __global__ void transpose2(const real *A, real *B, const int N)
 {
-    __shared__ real S[TILE_DIM][TILE_DIM + 1];
+    __shared__ real S[TILE_DIM][TILE_DIM + 1]; // 消除bank冲突
     int bx = blockIdx.x * TILE_DIM;
     int by = blockIdx.y * TILE_DIM;
 
@@ -165,4 +171,3 @@ void print_matrix(const int N, const real *A)
         printf("\n");
     }
 }
-
