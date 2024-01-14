@@ -14,6 +14,8 @@ const int BLOCK_SIZE = 128;
 
 void timing(const real *d_x);
 
+// 原子操作：一个线程中的原子操作可以在不受其他线程的任何操作的影响下完成对某个（全局内存或共享内存中的）数据的一套“读-改-写”操作
+// 对数组规约的优化：在先前的核函数末尾利用原子函数进行规约，直接在GPU上得到最终结果
 int main(void)
 {
     real *h_x = (real *) malloc(M);
@@ -53,7 +55,9 @@ void __global__ reduce(const real *d_x, real *d_y, const int N)
 
     if (tid == 0)
     {
-        atomicAdd(d_y, s_y[0]);
+        atomicAdd(d_y, s_y[0]); 
+        //使用原子函数，将不同线程块的部分和s_y[0]累加起来，存放到一个全局内存地址
+        //原子函数不能保证各个线程的执行具有特定的次序，但是可以保证每个现成的操作一气呵成，不受其他线程的干扰
     }
 }
 
