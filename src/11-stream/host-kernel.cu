@@ -2,10 +2,22 @@
 #include <math.h>
 #include <stdio.h>
 
+/*
+核函数外部的并行：
+    - 核函数计算与数据传输之间的并行
+    - 主机计算与数据传输之间的并行
+    - 不同的数据传输的并行
+    - 核函数计算与主机计算之间的并行
+    - 不同核函数之间的并行
+CUDA 流：
+    - 主机发出的在一个设备中执行的CUDA操作
+    - 来自两个不同的CUDA流中的操作不一定按照某个次序执行，可能并发或交错地执行
+    - CUDA流：cudaStream_t
+ */
 #ifdef USE_DP
-    typedef double real;
+typedef double real;
 #else
-    typedef float real;
+typedef float real;
 #endif
 
 const int NUM_REPEATS = 10;
@@ -14,18 +26,16 @@ const int M = sizeof(real) * N;
 const int block_size = 128;
 const int grid_size = (N - 1) / block_size + 1;
 
-void timing
-(
+void timing(
     const real *h_x, const real *h_y, real *h_z,
     const real *d_x, const real *d_y, real *d_z,
-    const int ratio, bool overlap
-);
+    const int ratio, bool overlap);
 
 int main(void)
 {
-    real *h_x = (real*) malloc(M);
-    real *h_y = (real*) malloc(M);
-    real *h_z = (real*) malloc(M);
+    real *h_x = (real *)malloc(M);
+    real *h_y = (real *)malloc(M);
+    real *h_z = (real *)malloc(M);
     for (int n = 0; n < N; ++n)
     {
         h_x[n] = 1.23;
@@ -39,7 +49,7 @@ int main(void)
     CHECK(cudaMemcpy(d_x, h_x, M, cudaMemcpyHostToDevice));
     CHECK(cudaMemcpy(d_y, h_y, M, cudaMemcpyHostToDevice));
 
-    printf("Without CPU-GPU overlap (ratio = 10)\n");
+    printf("Without  -GPU o  verlap (ratio = 10)\n");
     timing(h_x, h_y, h_z, d_x, d_y, d_z, 10, false);
     printf("With CPU-GPU overlap (ratio = 10)\n");
     timing(h_x, h_y, h_z, d_x, d_y, d_z, 10, true);
@@ -81,12 +91,10 @@ void __global__ gpu_sum(const real *x, const real *y, real *z)
     }
 }
 
-void timing
-(
+void timing(
     const real *h_x, const real *h_y, real *h_z,
     const real *d_x, const real *d_y, real *d_z,
-    const int ratio, bool overlap
-)
+    const int ratio, bool overlap)
 {
     float t_sum = 0;
     float t2_sum = 0;
@@ -98,7 +106,7 @@ void timing
         CHECK(cudaEventCreate(&stop));
         CHECK(cudaEventRecord(start));
         cudaEventQuery(start);
-
+        // 当overlap为真时，将在调用核函数之后调用一个主机端的函数；当overlap为假时，将在调用核函数之前调用主机端函数
         if (!overlap)
         {
             cpu_sum(h_x, h_y, h_z, N / ratio);
@@ -110,7 +118,7 @@ void timing
         {
             cpu_sum(h_x, h_y, h_z, N / ratio);
         }
- 
+
         CHECK(cudaEventRecord(stop));
         CHECK(cudaEventSynchronize(stop));
         float elapsed_time;
@@ -131,5 +139,3 @@ void timing
     const float t_err = sqrt(t2_sum / NUM_REPEATS - t_ave * t_ave);
     printf("Time = %g +- %g ms.\n", t_ave, t_err);
 }
-
-

@@ -14,6 +14,9 @@ const int M = sizeof(real) * N;
 const int MAX_NUM_STREAMS = 64;
 cudaStream_t streams[MAX_NUM_STREAMS];
 
+/*
+    异步数据传输时，将主机内存定义为不可分页内存或固定内存，在运行期间物理地址保持不变，DMA时必须先将数据从可分页内存移动到不可分页内存
+*/
 void timing
 (
     const real *h_x, const real *h_y, real *h_z,
@@ -100,7 +103,7 @@ void timing
         {
             int offset = i * N1;
             CHECK(cudaMemcpyAsync(d_x + offset, h_x + offset, M1, 
-                cudaMemcpyHostToDevice, streams[i]));
+                cudaMemcpyHostToDevice, streams[i])); // cudaMemcpy的异步版本，实现核函数执行与数据传输的并发
             CHECK(cudaMemcpyAsync(d_y + offset, h_y + offset, M1, 
                 cudaMemcpyHostToDevice, streams[i]));
 

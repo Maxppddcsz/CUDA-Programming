@@ -17,6 +17,11 @@ const unsigned FULL_MASK = 0xffffffff;
 
 void timing(const real *d_x, const int method);
 
+/*
+    1. warp：线程束,SM以32个线程为单位产生,管理,调度,执行线程；一个SM可以处理多个线程块，一个线程块又可以分为若干个线程束 warp_id = threadIdx.x / 32
+    2.单指令多线程模式: 一个线程束中的所有线程共享一个程序计数器(program counter), 但是每个线程都有独立的寄存器状态(register state), 所以线程可以根据判断条件选择不同的分支; 但是一个线程束中的分支是依次执行的, 也就是说在每一时刻一个线程束中的线程只能执行同一个的指令或者闲置, 这种执行模式就叫作单指令多线程模式
+    2. 分支发散：一个线程束中的线程顺序地执行判断语句中的不同分支时，称发生了分支发散
+*/
 int main(void)
 {
     real *h_x = (real *) malloc(M);

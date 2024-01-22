@@ -15,7 +15,7 @@ const int N = N1 * MAX_NUM_STREAMS;
 const int M = sizeof(real) * N;
 const int block_size = 128;
 const int grid_size = (N1 - 1) / block_size + 1;
-cudaStream_t streams[MAX_NUM_STREAMS];
+cudaStream_t streams[MAX_NUM_STREAMS]; // CUDA流存放
 
 void timing(const real *d_x, const real *d_y, real *d_z, const int num);
 
@@ -38,7 +38,7 @@ int main(void)
 
     for (int n = 0 ; n < MAX_NUM_STREAMS; ++n)
     {
-        CHECK(cudaStreamCreate(&(streams[n])));
+        CHECK(cudaStreamCreate(&(streams[n]))); // CUDA流产生
     }
 
     for (int num = 1; num <= MAX_NUM_STREAMS; ++num)
